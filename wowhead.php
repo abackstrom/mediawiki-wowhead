@@ -1,5 +1,11 @@
 <?php
 
+//
+// wowhead.php -- convert <wowhead>Item Name</wowhead> to a colored wowhead link
+//
+// Version 1.0 (30 March 2010)
+//
+
 // 
 // The MIT License
 // 
