@@ -3,7 +3,7 @@
 //
 // wowhead.php -- convert <wowhead>Item Name</wowhead> to a colored wowhead link
 //
-// Version 1.0 (30 March 2010)
+// Version 1.0.1 (30 March 2010)
 //
 
 // 
@@ -100,7 +100,7 @@ function whRender( $input, $args, $parser, $frame ) {
 function whFetch( $identifier ) {
 	global $wgMemc;
 
-	$url = sprintf('http://www.wowhead.com/?item=%s&xml', urlencode($identifier));
+	$url = sprintf('http://www.wowhead.com/item=%s&xml', urlencode($identifier));
 
 	$raw_xml = Http::get($url);
 	$xml = simplexml_load_string($raw_xml);
