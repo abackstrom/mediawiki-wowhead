@@ -42,36 +42,79 @@ function whParserInit( &$parser ) {
 function whRender( $input, $args, $parser, $frame ) {
 	global $wgMemc;
 
-	$key = wfMemcKey( 'wh', $input );
+	$input_name = $input;
+	$input_id = null;
 
+	$key = wfMemcKey( 'wh', $input_name );
 	$item = $wgMemc->get( $key );
 
-	// used for random enchantments ("of the Boar")
+	// we didn't have this cached by name; try to cache by the name + rel
+	if( !is_array($item) && isset($args['rel']) ) {
+		parse_str($args['rel'], $rel);
+
+		if( $rel['item'] ) {
+			$input_id = $rel['item'];
+
+			$key = wfMemcKey( 'wh', $input_id );
+			$item = $wgMemc->get( $key );
+		}
+	}
+
+	// additional parameters (enchants, random enchants, gems, etc.) per http://static.wowhead.com/widgets/power/demo.html
 	if( isset($args['rel']) ) {
 		$rel = sprintf(' rel="%s"', $args['rel']);
 	} else {
 		$rel = '';
 	}
 
+	// if we didn't get it from cache (by name or id) try to fetch item by name
 	if( !is_array($item) ) {
-		$url = sprintf('http://www.wowhead.com/?item=%s&xml', urlencode($input));
-
-		$raw_xml = Http::get($url);
-		$xml = simplexml_load_string($raw_xml);
-
-		$item = array(
-			'name' => (string)$xml->item->name,
-			'link' => (string)$xml->item->link,
-			'quality' => (string)$xml->item->quality['id']
-		);
-
-		$wgMemc->set( $key, $item );
+		$item = whFetch( $input_name );
 	}
 
-	$output = sprintf('<a href="%s" class="q%d"%s>[%s]</a>', $item['link'], $item['quality'], $rel, $item['name']);
+	// couldn't find by name, try by id
+	if( !is_array($item) && $input_id ) {
+		$item = whFetch( $input_id );
+	}
+
+	// still nothing, bail.
+	if( !is_array($item) ) {
+		return "[$input_name]";
+	}
+
+	// use the input name here, in case there was an item id override in rel (prevents "Dark Band of Agility" from becoming "Dark Band")
+	$output = sprintf('<a href="%s" class="q%d"%s>[%s]</a>', $item['link'], $item['quality'], $rel, $input_name);
 
 	return $output;
 }//end whRender
+
+/**
+ * Fetch by identifier, which could be a name or id
+ */
+function whFetch( $identifier ) {
+	global $wgMemc;
+
+	$url = sprintf('http://www.wowhead.com/?item=%s&xml', urlencode($identifier));
+
+	$raw_xml = Http::get($url);
+	$xml = simplexml_load_string($raw_xml);
+
+	if( (string)$xml->error == 'Item not found!' ) {
+		return false;
+	}
+
+	$item = array(
+		'name' => (string)$xml->item->name,
+		'link' => (string)$xml->item->link,
+		'quality' => (string)$xml->item->quality['id']
+	);
+
+	$key = wfMemcKey( 'wh', $identifier );
+
+	$wgMemc->set( $key, $item );
+
+	return $item;
+}//end whFetch
 
 /**
  * Hook into page display to add the Wowhead JavaScript file.
