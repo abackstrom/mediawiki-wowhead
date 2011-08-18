@@ -3,7 +3,7 @@
 //
 // wowhead.php -- convert <wowhead>Item Name</wowhead> to a colored wowhead link
 //
-// Version 1.0.1 (30 March 2010)
+// Version 1.0.2 (18 August 2011)
 //
 
 // 
@@ -73,14 +73,14 @@ function whRender( $input, $args, $parser, $frame ) {
 		$rel = '';
 	}
 
+	// first, try to fetch by item id
+	if( $input_id ) {
+		$item = whFetch( $input_id );
+	}
+
 	// if we didn't get it from cache (by name or id) try to fetch item by name
 	if( !is_array($item) ) {
 		$item = whFetch( $input_name );
-	}
-
-	// couldn't find by name, try by id
-	if( !is_array($item) && $input_id ) {
-		$item = whFetch( $input_id );
 	}
 
 	// still nothing, bail.
@@ -126,7 +126,8 @@ function whFetch( $identifier ) {
  * Hook into page display to add the Wowhead JavaScript file.
  */
 function whPageDisplay( &$out, &$sk ) {
-	$out->addScript('<script src="http://static.wowhead.com/widgets/power.js"></script>');
+	global $wgProto;
+	$out->addScript("<script src='{$wgProto}://static.wowhead.com/widgets/power.js'></script>");
 	return true;
 }//end whPageDisplay
 
